@@ -10,7 +10,7 @@ import os
 import numpy as np
 
 # ── make sure imports resolve from the project root ──────────────
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from src.detection.goertzel.goertzel_detector import GoertzelDetector
 from src.detection.detector_base import DTMF_TABLE
