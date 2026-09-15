@@ -1,2 +1,6 @@
 demo_samples
 __pycache__
+src/detection/FFT/
+src/detection/wavelet/
+generate_plot.py
+goertzel_spectrum.png

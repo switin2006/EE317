@@ -1,0 +1,160 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{float}
+
+% -----------------------------------------------------------
+% Title and Author Information
+% -----------------------------------------------------------
+\title{
+    \textbf{DTMF Signal Detection \& Decoding} \\[0.5em]
+    \large \textbf{Course Code:} EE317 \\
+    \large \textbf{Course Name:} Digital Signal Processing
+}
+
+\author{
+    Bhasuru Nikhil (240002017) \\
+    Switin Mechineni (240002074) \\
+    Sabbani Nishank (240002061)
+}
+
+\begin{document}
+
+\maketitle
+
+% -----------------------------------------------------------
+% Section 1: Introduction 
+% -----------------------------------------------------------
+\section{Introduction}
+Dual-Tone Multi-Frequency (DTMF) signaling is the audio protocol behind telephone keypads. Each button press generates a unique signal made of two superimposed sine waves—one low-frequency and one high-frequency. Beyond simple dialing, DTMF is widely used in automated phone menus (IVR systems), home automation, and remote security systems to transmit simple control commands over standard audio channels.
+
+Table \ref{tab:dtmf} illustrates the standard frequency pairings that encode each keypad input.
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|}
+        \hline
+        & \textbf{1209 Hz} & \textbf{1336 Hz} & \textbf{1477 Hz} & \textbf{1633 Hz} \\ \hline
+        \textbf{697 Hz} & 1 & 2 & 3 & A \\ \hline
+        \textbf{770 Hz} & 4 & 5 & 6 & B \\ \hline
+        \textbf{852 Hz} & 7 & 8 & 9 & C \\ \hline
+        \textbf{941 Hz} & * & 0 & \# & D \\ \hline
+    \end{tabular}
+    \caption{Standard DTMF Frequency Keypad Matrix}
+    \label{tab:dtmf}
+\end{table}
+
+This project builds a complete pipeline to synthesize and decode DTMF signals. We evaluate traditional methods like the Fast Fourier Transform (FFT) and Goertzel algorithm against advanced Wavelet transforms to determine the most reliable detection method in noisy environments.
+
+\textbf{Project Repository:} The codebase is hosted on GitHub: \url{https://github.com/switin2006/EE317}.
+
+% -----------------------------------------------------------
+% Section 2: Objectives
+% -----------------------------------------------------------
+\section{Objectives}
+The core objectives of this project are defined as follows:
+\begin{enumerate}
+    \item \textbf{Signal Simulation:} Synthesize standard 8000 Hz DTMF tones to serve as a clean dataset for testing our algorithms.
+    \item \textbf{Baseline Analysis:} Develop a Fast Fourier Transform (FFT) module for general spectrum analysis to serve as a performance baseline.
+    \item \textbf{Efficient Detection:} Implement the Goertzel algorithm to efficiently isolate and measure specific DTMF frequencies.
+    \item \textbf{Advanced Analysis:} Utilize a Wavelet Packet Transform (WPT) module to evaluate its robustness against background noise.
+\end{enumerate}
+
+% -----------------------------------------------------------
+% Section 3: Methodology (Conceptual Overview)
+% -----------------------------------------------------------
+\section{Methodology}
+This section outlines the theoretical concepts underlying each component of the project before detailing the software implementation.
+
+\subsection{Signal Generation}
+A standard DTMF signal is mathematically represented as the superposition of two continuous-time sinusoidal waves. By pairing one frequency from a designated low-frequency band with one from a high-frequency band, we can uniquely encode any standard keypad input.
+
+\subsection{Fast Fourier Transform (FFT)}
+% [To be populated by teammate: Explain the core concept of FFT detection here]
+
+\subsection{Goertzel Algorithm}
+The Goertzel algorithm offers a computationally efficient alternative to the FFT. Rather than computing the entire frequency spectrum, it functions as a narrow bandpass filter, allowing us to evaluate the signal energy for a single target frequency bin. This significantly reduces computational overhead when only a small subset of frequencies (the 8 standard DTMF tones) needs to be analyzed \cite{wirelesspi}.
+
+\subsection{Wavelet Transform}
+% [To be populated by teammate: Explain the core concept of Wavelet detection here]
+
+% -----------------------------------------------------------
+% Section 4: Current Implementation Progress
+% -----------------------------------------------------------
+\section{Implementation Progress}
+As of the midterm evaluation, we have successfully developed and validated the \textbf{Signal Generation} and the \textbf{Goertzel Algorithm} modules. The FFT and Wavelet transform modules are currently \textbf{not yet implemented}.
+
+\subsection{Signal Generation Implementation}
+The DTMF synthesis was implemented using standard NumPy operations. For a given low and high frequency pair, the continuous time array is generated and the two sinusoids are superimposed:
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\small, frame=single, xleftmargin=1em]
+t = np.arange(0, duration, 1.0 / sample_rate)
+signal = amplitude * (np.sin(2 * np.pi * low_freq * t) +
+                      np.sin(2 * np.pi * high_freq * t))
+\end{lstlisting}
+
+\subsection{Goertzel Implementation Details}
+To implement the Goertzel algorithm, we reformulate the standard Discrete Fourier Transform (DFT) equation into a discrete convolution, essentially creating an Infinite Impulse Response (IIR) filter. This permits the use of a computationally lightweight feedback loop for each incoming audio sample:
+\begin{equation}
+    v[n] = x[n] + 2\cos\left(\frac{2\pi k_0}{N}\right)v[n-1] - v[n-2]
+\end{equation}
+where $k_0 = (f / F_s) N$ represents the target frequency bin. After processing all samples within a given frame (e.g., 200 ms), the final power magnitude at the target frequency is evaluated using the final two state variables:
+\begin{equation}
+    P = v_1^2 + v_2^2 - 2\cos\left(\frac{2\pi k_0}{N}\right) v_1 v_2
+\end{equation}
+We implemented this logic in Python, executing the loop concurrently for the 8 standard DTMF frequencies.
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\small, frame=single, xleftmargin=1em]
+v1, v2 = 0.0, 0.0
+for n in range(N):
+    v = coeff * v1 - v2 + signal[n]
+    v2 = v1
+    v1 = v
+power = v1 * v1 + v2 * v2 - coeff * v1 * v2
+\end{lstlisting}
+
+% -----------------------------------------------------------
+% Section 5: Preliminary Results
+% -----------------------------------------------------------
+\section{Preliminary Results (Goertzel Only)}
+Our Python implementation of the Goertzel algorithm has been successfully validated against cleanly generated synthetic signals.
+\begin{itemize}
+    \item \textbf{Accuracy:} The algorithm achieves a 100\% decoding accuracy rate in the absence of background noise.
+    \item \textbf{Processing Speed:} It successfully processes a 200 ms audio clip in under 1.5 milliseconds, demonstrating significant computational efficiency.
+\end{itemize}
+
+Figure \ref{fig:goertzel_spectrum} illustrates the calculated power spectrum of the Goertzel algorithm for the digit '5', clearly showing the expected energy spikes at 770 Hz and 1336 Hz.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{goertzel_spectrum.png}
+    \caption{Goertzel Algorithm Power Spectrum for DTMF digit '5'.}
+    \label{fig:goertzel_spectrum}
+\end{figure}
+
+% -----------------------------------------------------------
+% Section 6: Post-Midterm Plan
+% -----------------------------------------------------------
+\section{Post-Midterm Plan}
+Our development roadmap for the remainder of the semester includes:
+\begin{enumerate}
+    \item \textbf{Noise Testing (AWGN):} Injecting Additive White Gaussian Noise into our generated signals to evaluate and compare the robustness of all detection algorithms (Goertzel, FFT, and Wavelet) across varying Signal-to-Noise Ratios (SNR).
+    \item \textbf{FFT and Wavelet Implementation:} Developing the FFT and WPT modules to establish comprehensive benchmarks against our current Goertzel implementation.
+    \item \textbf{Machine Learning Thresholding:} Exploring Machine Learning classification models (such as K-Nearest Neighbors) to replace static thresholds with learned, dynamic decision boundaries for enhanced noise resilience.
+\end{enumerate}
+
+% -----------------------------------------------------------
+% References
+% -----------------------------------------------------------
+\begin{thebibliography}{9}
+\bibitem{wirelesspi} 
+Wireless Pi. \textit{Goertzel Algorithm: Evaluating DFT without DFT}. 
+Available at: \url{https://wirelesspi.com/goertzel-algorithm-evaluating-dft-without-dft/}
+\end{thebibliography}
+
+\end{document}

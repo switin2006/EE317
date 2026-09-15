@@ -6,7 +6,8 @@ and provides audio playback utilities.
 """
 
 import numpy as np
-from src.detector_base import KEY_TO_FREQS, DTMF_TABLE
+from src.detection.detector_base import DTMF_TABLE
+KEY_TO_FREQS = {v: k for k, v in DTMF_TABLE.items()}
 
 
 # Default parameters
