@@ -3,7 +3,7 @@ from scipy.io import wavfile
 import os
 
 from src.generation.dtmf_generator import generate_dtmf_sequence, generate_dtmf_tone
-from src.generation.noise_utils import add_white_noise
+from src.noise.noise_generator import NoiseGenerator
 
 def save_wav(filename, signal, sample_rate=8000):
     # Normalize to 16-bit integer PCM
@@ -29,7 +29,8 @@ if __name__ == "__main__":
     
     # 3. Generate a noisy version of the sequence (SNR 5 dB - very noisy)
     print("Generating noisy sequence (SNR 5 dB)...")
-    noisy_sequence = add_white_noise(sequence, snr_db=5.0)
+    ng = NoiseGenerator(seed=42)
+    noisy_sequence = ng.add_white_noise(sequence, snr_db=5.0)
     save_wav("demo_samples/noisy_sequence_5db.wav", noisy_sequence, sample_rate)
     
     print("\nDone! Check the 'demo_samples' folder for your generated .wav files.")

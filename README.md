@@ -10,31 +10,62 @@ This repository contains the codebase for our DSP project on detecting and decod
 The repository is structured to keep our generation logic separate from our detection logic so we can work in parallel without merge conflicts.
 
 ### 1. Repository Structure
-- `src/generation/` ➔ Contains the tools for generating clean and noisy DTMF tones. **(Done!)**
-- `src/detection/` ➔ This is where we will build out our 3 detection algorithms.
-- `demo_samples/` ➔ Output directory for generated `.wav` files (ignored in git).
-- `generate_demo.py` ➔ A quick script to test signal generation.
+- `src/generation/` ➔ Tools for generating clean DTMF tones and multi-key sequences.
+- `src/noise/` ➔ Class-based noise generation (`NoiseGenerator`) and removal (`NoiseRemover`).
+- `src/detection/` ➔ Standardized DTMF detection algorithms inheriting from `DTMFDetector`:
+  - `goertzel/` ➔ Goertzel IIR filter detection.
+  - `FFT/` ➔ Fast Fourier Transform peak detection.
+  - `Wavelet/` ➔ Wavelet Packet Transform (WPT) multi-band energy detection.
+- `tests/` ➔ Standardized test suites (single tone, sequence, noise).
+- `demo_samples/` ➔ Output directory for generated `.wav` audio files.
+- `generate_demo.py` ➔ Script to generate and save sample `.wav` files.
+- `generate_plot.py` ➔ Script to compute and save Goertzel power spectrum plots.
 
-### 2. How to Generate Signals for Your Algorithm
-
-Before you write your detection algorithm, you need audio to test it on. The `dtmf_generator.py` file has been written to make this extremely easy.
-
-In your detection scripts, simply import the generator like this:
+### 2. How to Generate Signals & Noise
 
 ```python
 from src.generation.dtmf_generator import generate_dtmf_tone, generate_dtmf_sequence
-from src.generation.noise_utils import add_white_noise
+from src.noise import NoiseGenerator, NoiseRemover
 
 sample_rate = 8000
 
-# 1. Generate a single 200ms tone for the number '5'
+# 1. Generate clean single tone or sequence
 clean_5 = generate_dtmf_tone('5', sample_rate=sample_rate)
-
-# 2. Generate a full phone number sequence with silences
 sequence = generate_dtmf_sequence('5551234', sample_rate=sample_rate)
 
-# 3. Add heavy background noise to test your algorithm's robustness
-noisy_sequence = add_white_noise(sequence, snr_db=10.0)
+# 2. Add noise (White Gaussian, Pink, or Impulse)
+ng = NoiseGenerator(seed=42)
+noisy_sequence = ng.add_white_noise(sequence, snr_db=5.0)
+
+# 3. Clean noise using one of the denoising methods
+remover = NoiseRemover(sample_rate=sample_rate)
+cleaned_sequence = remover.spectral_gate(noisy_sequence)
+# or: remover.bandpass_filter(noisy_sequence)
+# or: remover.wavelet_denoise(noisy_sequence)
+```
+
+---
+
+## 🧪 Running the Standardized Test Suite
+
+Each algorithm and the noise engine have isolated, synchronized test suites inside `tests/`:
+
+```bash
+# Goertzel Tests
+python -m tests.Goertzel.test_goertzel_single
+python -m tests.Goertzel.test_goertzel_multi
+
+# FFT Tests
+python -m tests.FFT.test_fft_single
+python -m tests.FFT.test_fft_multi
+
+# Wavelet Tests
+python -m tests.Wavelet.test_wavelet_single
+python -m tests.Wavelet.test_wavelet_multi
+
+# Noise Generation & Removal Benchmarks
+python -m tests.Noise.test_noise_generation
+python -m tests.Noise.test_noise_removal
 ```
 
 ### 3. Running the Generator Demo

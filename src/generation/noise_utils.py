@@ -1,19 +1,15 @@
 """
-Noise Utilities
-
-Provides functions to add various types of noise to DTMF signals
-for robustness testing.
+Noise Utilities (Backward Compatibility Wrapper)
+=================================================
+Delegates to the standard `src.noise.NoiseGenerator`.
 """
 
 import numpy as np
+from src.noise.noise_generator import NoiseGenerator
+
+_default_generator = NoiseGenerator()
+
 
 def add_white_noise(signal: np.ndarray, snr_db: float) -> np.ndarray:
     """Add white Gaussian noise to a signal at a specified SNR."""
-    # Compute signal power
-    signal_power = np.mean(signal ** 2)
-    # Compute required noise power from SNR
-    # SNR_dB = 10 * log10(P_signal / P_noise)
-    noise_power = signal_power / (10 ** (snr_db / 10))
-    # Generate white Gaussian noise
-    noise = np.random.normal(0, np.sqrt(noise_power), len(signal))
-    return signal + noise
+    return _default_generator.add_white_noise(signal, snr_db)
